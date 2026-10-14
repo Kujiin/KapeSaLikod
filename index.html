@@ -41,7 +41,12 @@
         <div class="order-options" role="group" aria-label="Order type">
           <button class="order-option" data-order="Dine In" aria-pressed="false">
             <span class="option-check" aria-hidden="true">✓</span>
-            <svg viewBox="0 0 160 150" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M37 64h68v30a25 25 0 0 1-25 25H62a25 25 0 0 1-25-25Z"/><path d="M105 70h10a16 16 0 0 1 0 32h-12M25 128h99M58 49c-13-14 13-16 0-30m22 30c-13-14 13-16 0-30m22 30c-13-14 13-16 0-30" stroke-linecap="round"/></svg>
+            <svg viewBox="0 0 160 150" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
+              <path d="M37 64h68v30a25 25 0 0 1-25 25H62a25 25 0 0 1-25-25Z"/>
+              <path d="M105 70h10a16 16 0 0 1 0 32h-12M25 128h99" stroke-linecap="round"/>
+              <!-- Steam is centered on the drink opening (x=71), excluding the handle. -->
+              <path d="M53 56c-10-12 10-18 0-30M71 56c-10-12 10-18 0-30M89 56c-10-12 10-18 0-30" stroke-linecap="round"/>
+            </svg>
             <strong>Dine In</strong>
           </button>
           <button class="order-option" data-order="Take Out" aria-pressed="false">
