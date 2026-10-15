@@ -1,0 +1,11 @@
+{
+  "name": "kape-sa-likod-kiosk",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

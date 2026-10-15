@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f4">
+  <meta name="description" content="Kape sa Likod self-service menu. Coffee Now, Kape Later.">
+  <title>Kape sa Likod — Order here</title>
+  <link rel="icon" href="assets/kapelogo.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="kiosk">
+    <header class="header">
+      <img class="logo" src="assets/kapelogo.png" alt="Kape sa Likod — Coffee Now, Kape Later">
+      <div class="header-note"><span id="header-label"></span></div>
+    </header>
+
+    <main>
+      <section id="welcome" class="screen welcome" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
+          <h1 id="welcome-title" tabindex="-1">Coffee Now,<br><span class="outline">Kape Later.</span></h1>
+        </div>
+        <div class="coffee-stage" aria-hidden="true">
+          <div class="stage-ring"></div>
+          <span class="stage-note">A CUP OF<br>SOMETHING GOOD.</span>
+          <div class="cup cup-left"><div class="cup-depth"><img src="assets/coffee-01.png" alt=""></div></div>
+          <div class="cup cup-right"><div class="cup-depth"><img src="assets/coffee-06.png" alt=""></div></div>
+          <div class="cup cup-center"><div class="cup-depth"><img src="assets/coffee-03.png" alt=""></div></div>
+        </div>
+        <div class="welcome-action">
+          <button id="start-order" class="button primary">Touch to Start</button>
+        </div>
+      </section>
+
+      <section id="order-type" class="screen selection" aria-labelledby="selection-title" hidden>
+        <div class="screen-topline"><button class="back" data-screen="welcome"><span aria-hidden="true">←</span> Back</button></div>
+        <div class="selection-copy"><h1 id="selection-title" tabindex="-1">Dine In or<br>Take Out?</h1></div>
+        <div class="order-options" role="group" aria-label="Order type">
+          <button class="order-option" data-order="Dine In" aria-pressed="false">
+            <span class="option-check" aria-hidden="true">✓</span>
+            <svg viewBox="0 0 160 150" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
+              <path d="M37 64h68v30a25 25 0 0 1-25 25H62a25 25 0 0 1-25-25Z"/>
+              <path d="M105 70h10a16 16 0 0 1 0 32h-12M25 128h99" stroke-linecap="round"/>
+              <!-- Steam is centered on the drink opening (x=71), excluding the handle. -->
+              <path d="M53 56c-10-12 10-18 0-30M71 56c-10-12 10-18 0-30M89 56c-10-12 10-18 0-30" stroke-linecap="round"/>
+            </svg>
+            <strong>Dine In</strong>
+          </button>
+          <button class="order-option" data-order="Take Out" aria-pressed="false">
+            <span class="option-check" aria-hidden="true">✓</span>
+            <svg viewBox="0 0 160 150" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m48 53 8 76h49l8-76M43 43h75v10H43zM51 43l5-13h49l5 13M78 30V13h16" stroke-linejoin="round" stroke-linecap="round"/><path d="M53 77h57l-4 31H56Z"/><path d="M76 85c-9 5-9 14 2 16m4-18c10 3 12 13 1 17" stroke-linecap="round"/></svg>
+            <strong>Take Out</strong>
+          </button>
+        </div>
+        <div class="selection-action"><button id="continue" class="button primary" disabled>Continue to Menu</button></div>
+      </section>
+
+      <section id="menu" class="screen menu" aria-labelledby="menu-title" hidden>
+        <div class="screen-topline"><button class="back" data-screen="order-type"><span aria-hidden="true">←</span> Back</button></div>
+        <div class="menu-heading"><h1 id="menu-title" tabindex="-1">Menu</h1></div>
+        <nav class="categories" aria-label="Menu categories"><span class="category-indicator" aria-hidden="true"></span><button class="category active" data-category="All" aria-pressed="true">All drinks</button><button class="category" data-category="Non Coffee" aria-pressed="false">Non Coffee</button><button class="category" data-category="Matcha" aria-pressed="false">Matcha</button><button class="category" data-category="Sparkling Soda" aria-pressed="false">Sparkling Soda</button></nav>
+        <div class="menu-meta"><h2 id="category-title">All drinks <span>21</span></h2></div>
+        <div id="products" class="products"></div>
+      </section>
+    </main>
+    <footer class="footer"><span>Self-Service Ordering</span></footer>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+</body>
+</html>

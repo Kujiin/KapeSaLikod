@@ -1,0 +1,27 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.aws/
+.codex/
+.agents/
+
+# Dependencies and generated artifacts
+node_modules/
+dist/
+.build-*/
+coverage/
+*.log
+.DS_Store
+
+# Runtime data and database exports never belong in source control
+backups/
+uploads/
+*.sql.gz
+*.dump
+*.backup
+pgdata/
