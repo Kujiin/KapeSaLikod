@@ -10,12 +10,13 @@ if(!process.stdin.isTTY||!process.stdout.isTTY)throw new Error('Use an interacti
 function hidden(prompt){return new Promise((resolve,reject)=>{
   process.stdout.write(prompt);let value='';emitKeypressEvents(process.stdin);process.stdin.setRawMode(true);process.stdin.resume();
   function finish(){process.stdin.off('keypress',handler);process.stdin.setRawMode(false);process.stdin.pause();process.stdout.write('\n');}
-  function handler(str,key){if(key?.ctrl&&key.name==='c'){finish();reject(new Error('Cancelled'));}else if(key?.name==='return'){finish();resolve(value);}else if(key?.name==='backspace'){value=value.slice(0,-1);}else if(str&&!key?.ctrl&&value.length<129)value+=str;}
+  function handler(str,key){if(key?.ctrl&&key.name==='c'){finish();reject(new Error('Cancelled'));}else if(['return','enter'].includes(key?.name)){finish();resolve(value);}else if(key?.name==='backspace'){value=value.slice(0,-1);}else if(str&&!key?.ctrl&&value.length<129)value+=str;}
   process.stdin.on('keypress',handler);
 });}
 const pool=poolFor(configuration());
+let rl;
 try{
-  const rl=createInterface({input:process.stdin,output:process.stdout});
+  rl=createInterface({input:process.stdin,output:process.stdout});
   const email=emailSchema.parse(await rl.question('Owner email: '));
   const name=text().parse(await rl.question('Display name: '));rl.close();
   const password=passwordSchema.parse(await hidden('Password (hidden, 12–128 characters): '));
@@ -29,4 +30,4 @@ try{
     await audit(client,user,'initial_owner_created','admin_user',user.id);
   });console.log('Initial owner created. No password was printed.');
 }catch(error){console.error(error.statusCode===409?error.message:'Owner creation failed. Check inputs, database readiness and permissions. No secret details printed.');process.exitCode=1;}
-finally{await pool.end();}
+finally{rl?.close();if(process.stdin.isRaw)process.stdin.setRawMode(false);process.stdin.pause();await pool.end();}

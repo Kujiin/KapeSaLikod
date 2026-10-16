@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+from bootstrap import bootstrap
 
 API = Path(__file__).resolve().parents[1]
 BIN = Path('/usr/lib/postgresql/18/bin')
@@ -29,6 +30,9 @@ def main():
             for action in ['migrate','migrate','seed']:
                 checked(['python3',API/'scripts/database.py',action,'--socket-dir',socket,'--port','55433','--approve-write','--require-empty'],stdout=subprocess.DEVNULL)
             ENV.update(PGHOST=str(socket),PGPORT='55433',PGUSER='kape_sa_likod_app',PGDATABASE='kape_sa_likod',UPLOAD_DIR=str(root/'uploads'),ALLOWED_ORIGINS='http://127.0.0.1:4173')
+            bootstrap(API,ENV)
+            # Reset only the bootstrap fixture in this disposable cluster.
+            checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-v','ON_ERROR_STOP=1','-c',"DELETE FROM kape.audit_events WHERE actor_admin_id IN (SELECT id FROM kape.admin_users WHERE email='bootstrap@example.test'); DELETE FROM kape.admin_users WHERE email='bootstrap@example.test';"],stdout=subprocess.DEVNULL)
             checked(['node','--test','--test-concurrency=1',API/'tests/api.test.js'],cwd=API)
             checked(['node','--test',API/'tests/frontend.test.js'],cwd=API)
             # Restore a private backup into a separate disposable database.

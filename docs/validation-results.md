@@ -20,6 +20,9 @@
   with the same persisted UUID, confirmation/new order, staff login/overview,
   product editing, order listing and logout. Dialog/scroll/media behavior is
   polyfilled; this is functional logic coverage, not visual browser evidence.
+- Initial owner bootstrap was exercised through a pseudo-terminal against the
+  disposable database, including hidden entry/confirmation and an assertion that
+  its generated test password never appeared in terminal output.
 - Private custom-format `pg_dump` restored with `pg_restore --single-transaction`
   into a second empty disposable database; ledger/order existence checked.
 - `npm --prefix apps/kiosk test`: public build rejects extra secret/SQL/server
