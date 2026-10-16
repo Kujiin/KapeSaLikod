@@ -1,7 +1,10 @@
 # Validation results — 16 October 2026
 
 > Subsequent local UI/numbering work is recorded in [the portrait layout update](kiosk-layout-update.md).
-> Migration 004 and those UI changes have not been deployed.
+> PR #3 was merged. A follow-up footer notification fix is prepared locally.
+> Migration 004 passed isolated tests again; live application remains unverified.
+> The owner can apply it with `sudo bash apps/api/deploy/upgrade-order-numbers.sh`
+> (private backup, guarded migration and ledger verification; no API restart).
 
 ## Current live setup update
 

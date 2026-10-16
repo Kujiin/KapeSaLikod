@@ -1,7 +1,24 @@
 # Portrait kiosk and order-reference update
 
 Prepared on `feat/kiosk-contained-ordering` from the latest merged main.
-Nothing in this change has been deployed or applied to the live database.
+PR #3 was merged into main. The subsequent notification fix places feedback in
+the kiosk footer, outside the scrolling menu and sticky Review order button.
+The live application of migration 004 has not yet been verified.
+
+## Apply the order-number migration
+
+From the repository root on the database host, run:
+
+```sh
+sudo bash apps/api/deploy/upgrade-order-numbers.sh
+```
+
+This takes a private custom-format backup, checks its archive listing, stages the
+guarded runner where postgres can read it, applies migrations through 004 with
+checksum checks, then verifies the ledger and reports catalog counts and sequence
+state without allocating an order number. It does not seed or replace the database.
+The existing API supports the new database default; an API restart is not needed
+to activate numbering. Sudo requires the owner's interactive authentication.
 
 ## Interface
 
