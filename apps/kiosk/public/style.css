@@ -231,3 +231,25 @@ dialog{border:1px solid var(--line);border-radius:18px;padding:28px;width:min(52
 .cart-line > div:first-child { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
 .quantity-control { flex: 0 1 auto; }
 #order-reference { font-size: clamp(15px, 3.8cqw, 24px); }
+
+/* Feedback has its own row outside the scrolling menu and sticky cart action. */
+.footer { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.footer > span, .footer > .toast { grid-area: 1 / 1; }
+.footer > span:only-of-type { display: block; font-weight: 400; color: var(--muted); }
+.footer:has(.toast.visible) > span { visibility: hidden; }
+.footer > .toast {
+  position: static;
+  inset: auto;
+  transform: none;
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+  font-size: clamp(12px, 2cqw, 18px);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  transition: opacity .2s;
+}
