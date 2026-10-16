@@ -39,7 +39,12 @@ test('real browser: kiosk, retries, original welcome appearance and /swaggar adm
   let browser;
   t.after(async()=>{await browser?.close();await new Promise(resolve=>server.close(resolve));await app.close();});
   browser=await chromium.launch({headless:true});await mkdir(artifacts,{recursive:true});
-  const context=await browser.newContext({viewport:{width:768,height:1024},reducedMotion:'reduce'});
+  const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+  async function contained(page,selector,frame='.kiosk'){
+    const bounds=await page.locator(selector).boundingBox();const outer=await page.locator(frame).boundingBox();
+    assert(bounds&&outer,'Dialog/frame must be visible');
+    assert(bounds.x>=outer.x-1&&bounds.y>=outer.y-1&&bounds.x+bounds.width<=outer.x+outer.width+1&&bounds.y+bounds.height<=outer.y+outer.height+1,'Dialog must stay inside its kiosk frame');
+  }
   const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:4173/');
   await expect(page.getByRole('button',{name:'Touch to Start'})).toBeVisible();
@@ -54,8 +59,9 @@ test('real browser: kiosk, retries, original welcome appearance and /swaggar adm
   await expect(page.locator('.product')).toHaveCount(21);
   await page.getByRole('button',{name:'Matcha',exact:true}).click();await expect(page.locator('.product')).toHaveCount(9);
   await page.getByRole('button',{name:'All drinks',exact:true}).click();
-  await page.getByRole('button',{name:'Choose Signature Choco',exact:true}).click();await page.getByRole('button',{name:/12 oz/}).click();
-  await page.getByRole('button',{name:/Review order/}).click();await expect(page.locator('#cart-items')).toContainText('Signature Choco');
+  await page.getByRole('button',{name:'Choose Signature Choco',exact:true}).click();for(const viewport of [{width:1440,height:1000},{width:390,height:844},{width:768,height:1024}]){await page.setViewportSize(viewport);await contained(page,'#size-dialog');}
+  await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:artifacts+'kiosk-size-contained.png'});await page.getByRole('button',{name:/12 oz/}).click();
+  await page.getByRole('button',{name:/Review order/}).click();await expect(page.locator('#cart-items')).toContainText('Signature Choco');await contained(page,'#cart-dialog');
   await page.getByRole('button',{name:'Increase Signature Choco',exact:true}).click();
   let key;let created;
   await page.route('**/api/v1/orders',async route=>{
@@ -65,22 +71,22 @@ test('real browser: kiosk, retries, original welcome appearance and /swaggar adm
   const pending=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('ksl_pending')));assert.equal(pending.key,key);
   await page.reload();await expect(page.getByRole('button',{name:'Retry same order',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Retry same order',exact:true}).click();await expect(page.locator('#confirmation')).toBeVisible();
-  const reference=await page.locator('#order-reference').textContent();assert.match(reference,/KSL-/);
+  const reference=await page.locator('#order-reference').textContent();assert.match(reference,/KapeSaLikod-/);
   const {rows:[{count}]}=await pool.query('SELECT count(*) FROM kape.orders WHERE id=$1',[created]);assert.equal(Number(count),1);
-  await page.screenshot({path:artifacts+'kiosk-confirmation.png'});
+  await contained(page,'#confirmation');await page.screenshot({path:artifacts+'kiosk-confirmation.png'});
   await page.getByRole('button',{name:'Start a new order'}).click();await expect(page.locator('#welcome')).toBeVisible();
-  await page.goto('http://127.0.0.1:4173/swaggar/');await expect(page.getByRole('heading',{name:'Welcome back.'})).toBeVisible();
+  await page.goto('http://127.0.0.1:4173/swaggar/');await expect(page.getByRole('heading',{name:'Staff sign in'})).toBeVisible();
   await page.getByLabel('Email',{exact:true}).fill('browser@example.test');await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Overview',exact:true})).toBeVisible();await page.screenshot({path:artifacts+'admin-overview.png'});
   await page.getByRole('button',{name:'Products',exact:true}).click();await expect(page.getByRole('heading',{name:'Your menu',exact:true})).toBeVisible();
   await page.getByRole('searchbox',{name:'Search products'}).fill('Signature Choco');await page.getByRole('button',{name:'Edit',exact:true}).click();
-  await page.getByLabel('Description',{exact:true}).fill('Browser-tested description');await page.getByRole('button',{name:'Save product',exact:true}).click();await expect(page.locator('#editor')).not.toBeVisible();
+  await contained(page,'#editor','.admin-kiosk');await page.getByLabel('Description',{exact:true}).fill('Browser-tested description');await page.getByRole('button',{name:'Save product',exact:true}).click();await expect(page.locator('#editor')).not.toBeVisible();
   await page.getByRole('button',{name:'Orders',exact:true}).click();await page.getByRole('searchbox',{name:'Search orders'}).fill(reference);await page.getByRole('button',{name:'Search / refresh',exact:true}).click();
   await expect(page.locator('#content')).toContainText(reference);await page.getByRole('button',{name:'View order',exact:true}).click();await expect(page.locator('#editor')).toContainText('Signature Choco');
   await page.getByRole('button',{name:'Close dialog',exact:true}).click();
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:artifacts+'admin-mobile.png'});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Dashboard must fit mobile viewport');
-  await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page.getByRole('heading',{name:'Welcome back.'})).toBeVisible();
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page.getByRole('heading',{name:'Staff sign in'})).toBeVisible();
   await page.goto('http://127.0.0.1:4173/');await page.route('**/api/v1/menu',route=>route.abort('internetdisconnected'));
   await page.reload();await page.getByRole('button',{name:'Touch to Start'}).click();await page.getByRole('button',{name:'Take Out',exact:true}).click();await page.getByRole('button',{name:'Continue to Menu'}).click();
   await expect(page.locator('#menu-state')).toContainText('Café server unavailable');await expect(page.locator('#open-cart')).not.toBeVisible();

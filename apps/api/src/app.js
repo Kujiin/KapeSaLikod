@@ -39,9 +39,9 @@ export async function buildApp({config=configuration(),pool=poolFor(config),logg
     reply.code(status).send({error:message,request_id:request.id});
   });
   app.get('/health',async()=>({status:'ok'}));
-  const migration=await readFile(new URL('../db/migrations/003_backend_features.sql',import.meta.url));
+  const migration=await readFile(new URL('../db/migrations/004_order_numbers.sql',import.meta.url));
   app.get('/ready',async()=>{
-    const {rows:[row]}=await pool.query("SELECT sha256 FROM kape.schema_migrations WHERE version='003_backend_features.sql'");
+    const {rows:[row]}=await pool.query("SELECT sha256 FROM kape.schema_migrations WHERE version='004_order_numbers.sql'");
     if(row?.sha256!==digest(migration).toString('hex'))fail(503,'Database migration is not ready.');
     return {status:'ready'};
   });

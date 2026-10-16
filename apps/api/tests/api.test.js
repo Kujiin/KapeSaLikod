@@ -46,12 +46,25 @@ test('PostgreSQL-backed API, authentication, catalog, orders, uploads and author
     const menu=(await call('GET','/v1/menu')).json();variant=menu.products[0].variants[0];
     const body={order_type:'Dine In',items:[{variant_id:variant.id,quantity:2}]};const key=randomUUID();
     const [a,b]=await Promise.all([call('POST','/v1/orders',body,{headers:{'idempotency-key':key},status:200}),call('POST','/v1/orders',body,{headers:{'idempotency-key':key},status:200})]);
-    order=a.json();assert.equal(order.id,b.json().id);assert.equal(Number(order.total_centavos),variant.price_centavos*2);assert.equal(order.payment_status,'unpaid');assert.match(order.reference,/^KSL-[A-F0-9]{16}$/);assert.equal(order.history.length,1);
+    order=a.json();assert.equal(order.id,b.json().id);assert.equal(Number(order.total_centavos),variant.price_centavos*2);assert.equal(order.payment_status,'unpaid');assert.match(order.reference,/^KapeSaLikod-[0-9]{7}$/);assert.equal(order.reference,'KapeSaLikod-0000001');assert.equal(order.history.length,1);
     await call('POST','/v1/orders',{...body,order_type:'Take Out'},{headers:{'idempotency-key':key},status:409});
     await call('POST','/v1/orders',{...body,total_centavos:1},{headers:{'idempotency-key':randomUUID()},status:400});
     for(const quantity of [0,-1,100,1.5])await call('POST','/v1/orders',{...body,items:[{variant_id:variant.id,quantity}]},{headers:{'idempotency-key':randomUUID()},status:400});
     await call('POST','/v1/orders',{order_type:'Dine In',items:[]},{headers:{'idempotency-key':randomUUID()},status:400});
     await call('POST','/v1/orders',body,{status:400});
+  });
+  await t.test('sequential references are unique under concurrency and never reuse rolled-back numbers',async()=>{
+    const body={order_type:'Take Out',items:[{variant_id:variant.id,quantity:1}]};
+    const responses=await Promise.all(Array.from({length:3},()=>call('POST','/v1/orders',body,{headers:{'idempotency-key':randomUUID()},status:200})));
+    assert.deepEqual(responses.map(r=>r.json().reference).sort(),['KapeSaLikod-0000002','KapeSaLikod-0000003','KapeSaLikod-0000004']);
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      await client.query("INSERT INTO kape.orders(order_type,total_centavos) VALUES('Take Out',0)");
+      await client.query('ROLLBACK');
+    }finally{client.release();}
+    const next=(await call('POST','/v1/orders',body,{headers:{'idempotency-key':randomUUID()},status:200})).json();
+    assert.equal(next.reference,'KapeSaLikod-0000006');
   });
   let createdProduct;
   await t.test('product/category CRUD, availability, price history and uploads',async()=>{
@@ -121,7 +134,7 @@ test('PostgreSQL-backed API, authentication, catalog, orders, uploads and author
     assert.throws(()=>configuration({...process.env,PGUSER:'postgres'}));
   });
   await t.test('runtime has no DDL, ownership, catalog DELETE, item UPDATE or owner membership',async()=>{
-    for(const sql of ['CREATE TABLE kape.forbidden(id int)','CREATE TEMP TABLE forbidden(id int)','DELETE FROM kape.products','UPDATE kape.order_items SET quantity=2','SET ROLE kape_sa_likod_owner','SELECT * FROM kape.schema_migrations'])await assert.rejects(pool.query(sql));
+    for(const sql of ['CREATE TABLE kape.forbidden(id int)','CREATE TEMP TABLE forbidden(id int)','DELETE FROM kape.products','UPDATE kape.order_items SET quantity=2','SET ROLE kape_sa_likod_owner','SELECT * FROM kape.schema_migrations',"SELECT setval('kape.order_reference_seq',1)"])await assert.rejects(pool.query(sql));
   });
   await t.test('logout, expired sessions, brute-force limiting and safe database outage response',async()=>{
     await call('POST','/v1/admin/logout',null,{status:200});await call('GET','/v1/admin/session',null,{status:401});cookie=null;csrf=null;

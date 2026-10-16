@@ -1,5 +1,8 @@
 # Validation results — 16 October 2026
 
+> Subsequent local UI/numbering work is recorded in [the portrait layout update](kiosk-layout-update.md).
+> Migration 004 and those UI changes have not been deployed.
+
 ## Current live setup update
 
 The preparation/test history below is retained as a dated record. Since those tests:

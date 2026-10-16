@@ -19,7 +19,7 @@ def main():
     parser.add_argument('--socket-dir', required=True, type=Path)
     parser.add_argument('--port', type=int, default=5432)
     parser.add_argument('--approve-write', action='store_true')
-    parser.add_argument('--through', choices=['002', '003'], default='003')
+    parser.add_argument('--through', choices=['002', '003', '004'], default='004')
     parser.add_argument('--require-empty', action='store_true', help='Refuse seed if any catalog table contains rows')
     args = parser.parse_args()
     if not args.approve_write:
