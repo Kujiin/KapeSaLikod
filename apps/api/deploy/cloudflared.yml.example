@@ -1,0 +1,9 @@
+# Unapplied example for a NEW, separately approved dedicated named tunnel.
+# A real domain/hostname and account authorization are required. Do not modify
+# an existing tunnel or assume ownership of a domain.
+tunnel: REPLACE_WITH_NEW_TUNNEL_UUID
+credentials-file: /etc/cloudflared/kape-sa-likod-tunnel.json
+ingress:
+  - hostname: REPLACE_WITH_APPROVED_API_HOSTNAME
+    service: http://127.0.0.1:3100
+  - service: http_status:404

@@ -1,0 +1,11 @@
+import { z } from 'zod';
+export const id = z.string().regex(/^[1-9][0-9]{0,14}$/);
+export const uuid = z.uuid();
+export const text = (max = 120) => z.string().trim().min(1).max(max);
+export const password = z.string().min(12).max(128);
+export const email = z.email().max(254).transform(v => v.trim().toLowerCase());
+export const cents = z.number().int().min(0).max(10000000);
+export const status = z.enum(['pending','accepted','preparing','ready','completed','cancelled']);
+export const parse = (schema, value) => schema.parse(value);
+export const object = z.strictObject;
+export { z };
