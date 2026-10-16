@@ -1,6 +1,18 @@
 # Backend, kiosk and /swaggar implementation handoff
 
-## Status and boundaries
+## Current school-demo setup
+
+See [the live setup update](validation-results.md#current-live-setup-update).
+The owner has since activated the database, installed/configured the dedicated API
+service and created the first owner account. The selected no-domain demo connection
+is Tailscale Funnel at `https://houseofkujin.tail2a7c37.ts.net:8443`, in background
+mode, to 127.0.0.1:3100. Use that origin for the Pages Production API_ORIGIN setting.
+The existing private Tailscale service on 443 remains untouched. PostgreSQL remains
+local. Frontend publication is still pending; do not treat local code as deployed.
+The original Cloudflare named-tunnel instructions below are an alternative, not
+an additional requirement for this school demo.
+
+## Historical status and boundaries
 
 Work is local on `feat/postgresql-preparation`. The database was already provisioned
 manually by the owner. The last live inspection supplied by the owner showed no

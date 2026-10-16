@@ -83,6 +83,6 @@ test('real browser: kiosk, retries, original welcome appearance and /swaggar adm
   await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page.getByRole('heading',{name:'Welcome back.'})).toBeVisible();
   await page.goto('http://127.0.0.1:4173/');await page.route('**/api/v1/menu',route=>route.abort('internetdisconnected'));
   await page.reload();await page.getByRole('button',{name:'Touch to Start'}).click();await page.getByRole('button',{name:'Take Out',exact:true}).click();await page.getByRole('button',{name:'Continue to Menu'}).click();
-  await expect(page.locator('#menu-state')).toContainText('menu is unavailable');await expect(page.locator('#open-cart')).not.toBeVisible();
+  await expect(page.locator('#menu-state')).toContainText('Café server unavailable');await expect(page.locator('#open-cart')).not.toBeVisible();
   assert.deepEqual(errors,[]);
 });

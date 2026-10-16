@@ -1,5 +1,27 @@
 # Validation results — 16 October 2026
 
+## Current live setup update
+
+The preparation/test history below is retained as a dated record. Since those tests:
+
+- The owner ran the guarded database activation and supplied a successful read-only
+  preflight: 3 categories, 2 sizes, 21 products, 37 variants, 3 migrations and matching
+  checksums; local SCRAM rules were confirmed without printing password verifiers.
+- The owner installed the dedicated release/account/configuration and systemd unit,
+  privately set matching database/runtime credentials, passed runtime readiness,
+  created the initial owner account, and enabled/started the API service.
+- Local API and Tailscale Funnel readiness were verified read-only by the agent.
+  API and tailscaled are enabled at boot. Funnel is configured in background mode
+  at `https://houseofkujin.tail2a7c37.ts.net:8443`, proxying only to 127.0.0.1:3100.
+  The existing private port-443 service to 8090 is preserved. A reboot recovery
+  test has not been performed.
+- The owner was instructed to set Production `API_ORIGIN` to the Funnel origin.
+  Its saved value cannot be independently verified from this environment.
+- A temporary Cloudflare Quick Tunnel was also started earlier. It has not been
+  stopped; cleanup requires confirmation after the Funnel/Pages connection works.
+- Frontend remains local and has not been pushed, merged or deployed. Real browser
+  QA remains deferred at the owner's request; no visual success is claimed.
+
 ## Executed successfully
 
 - Original baseline SQL validation: `python3 apps/api/db/tests/validate.py`.
@@ -40,7 +62,7 @@
 All database writes above were to disposable private clusters, stopped/deleted at
 completion. The live cluster was not modified by tests or this implementation.
 
-## Not passed / not performed
+## Original limitations at implementation handoff (see live update above)
 
 - Real Chromium browser test was attempted, but launch failed because
   `libatk-1.0.so.0` is missing. No system packages were installed. No successful

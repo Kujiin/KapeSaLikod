@@ -29,6 +29,13 @@ def main():
             checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','postgres','-v','approve_provision=true','-f',API/'db/provision.sql'],stdout=subprocess.DEVNULL)
             for action in ['migrate','migrate','seed']:
                 checked(['python3',API/'scripts/database.py',action,'--socket-dir',socket,'--port','55433','--approve-write','--require-empty'],stdout=subprocess.DEVNULL)
+            preflight=[BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-f',API/'db/queries/production-preflight.sql']
+            checked(preflight,stdout=subprocess.DEVNULL)
+            checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-c',"INSERT INTO kape.categories(name) VALUES('preflight-test-only');"],stdout=subprocess.DEVNULL)
+            mismatch=subprocess.run([str(a) for a in preflight],env=ENV,text=True,capture_output=True)
+            assert mismatch.returncode != 0 and 'Activation counts differ' in mismatch.stderr
+            checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-c',"DELETE FROM kape.categories WHERE name='preflight-test-only';"],stdout=subprocess.DEVNULL)
+            print('PASS: read-only production preflight accepts expected data and rejects count mismatches.')
             ENV.update(PGHOST=str(socket),PGPORT='55433',PGUSER='kape_sa_likod_app',PGDATABASE='kape_sa_likod',UPLOAD_DIR=str(root/'uploads'),ALLOWED_ORIGINS='http://127.0.0.1:4173')
             bootstrap(API,ENV)
             # Reset only the bootstrap fixture in this disposable cluster.

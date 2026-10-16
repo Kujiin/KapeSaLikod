@@ -89,7 +89,7 @@ async function loadMenu(){
     state.replaceChildren();if(!products.length)state.textContent='The menu is empty. Please ask at the counter.';
     renderProducts(currentCategory);if(currentScreen==='menu')updateCategoryIndicator();
   }catch{
-    state.replaceChildren(el('span',{text:products.length?'Menu refresh failed. Availability will be checked when ordering.':'The menu is unavailable. Please check your connection or ask at the counter.'}),el('button',{text:'Retry',onclick:loadMenu}));
+    state.replaceChildren(el('span',{text:products.length?'Café server unavailable—please try again later. The displayed menu may be out of date.':'Café server unavailable—please try again later or ask at the counter.'}),el('button',{text:'Retry',onclick:loadMenu}));
   }
 }
 function chooseSize(product){
