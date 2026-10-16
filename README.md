@@ -1,36 +1,34 @@
 # Kape sa Likod
 
-Option A: one GitHub repository, Cloudflare Pages for static frontends, and the
-Ubuntu home server for the future Node.js API and PostgreSQL database.
+Option A monorepo: Cloudflare Pages serves the customer kiosk and `/swaggar/`,
+with a dedicated Ubuntu Node.js API and locally accessible PostgreSQL 18 database.
 
-## Preparation layout
+- `apps/kiosk/public/`: original kiosk appearance plus API-backed menu/cart/order flow,
+  and a separate staff dashboard in `swaggar/`.
+- `apps/kiosk/functions/`: fixed-upstream same-origin API proxy for Cloudflare Pages.
+- `apps/kiosk/scripts/`: explicit public artifact allowlist/hash validation.
+- `apps/api/`: Fastify API, SQL migrations, initial menu seed, tests and unapplied
+  service/deployment templates.
+- Root legacy HTML/CSS/JS and images: preserved unchanged as a reference baseline.
 
-- `apps/kiosk/public/`: byte-identical copy of the existing customer kiosk.
-- `apps/kiosk/public-files.json`: reviewed public file allowlist and SHA-256 hashes.
-- `apps/kiosk/scripts/`: dependency-free build and preservation checks.
-- `apps/api/`: backend plan only; no running application.
-- `docs/deployment.md`: deployment boundary and later activation checklist.
-- Root HTML/CSS/JS, `assets/`, and `references/`: retained unchanged for compatibility
-  with the existing website. Do not remove or edit them during preparation.
-
-The admin dashboard is deferred. Its eventual URL path must be `/swaggar`,
-not `/admin`; no admin application or route is created now.
-
-## Local validation
-
-With the existing Node.js installation, no dependency installation is needed:
+[Implementation, activation and operations guide](docs/backend-implementation.md) ·
+[API details](apps/api/README.md) · [Validation results](docs/validation-results.md)
 
 ```sh
+npm ci --prefix apps/api
+npm ci --prefix apps/kiosk
 npm --prefix apps/kiosk run build
 npm --prefix apps/kiosk run check
+npm --prefix apps/api test
 ```
 
-The build publishes only explicitly approved files into `apps/kiosk/dist/`.
-It rejects unknown files, directories, symlinks, missing files, and changed hashes.
-Approved future frontend edits require deliberate review and manifest updates.
-The check compares source and output with the unchanged legacy root kiosk.
-This preservation check is intentionally specific to this preparation phase.
+Publish only `apps/kiosk/dist`, with Cloudflare Pages root `apps/kiosk`, build
+`npm run build`, output `dist`. Never serve the repository root. SQL, backend source,
+credentials, backups and private configuration must not enter static output.
 
-Do not serve or deploy the repository root after adding backend material.
-Do not push this branch until the deployment checklist has been reviewed:
-an existing Pages integration may deploy a pushed branch automatically.
+Development source is not production activation. Do not rerun database provisioning:
+the dedicated live database already exists. Review migration 003 permissions and
+follow the guarded activation guide. Sudo-authenticated live database access,
+credentials, the API service, Cloudflare Tunnel, Pages bindings and deployment
+require manual setup/approval. No PM2, SSH, Tailscale or unrelated service changes.
+Do not push or merge until reviewed; Pages can auto-deploy pushed branches/main.
