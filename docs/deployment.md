@@ -1,3 +1,7 @@
+> Historical initial preparation checklist. For the implemented API, kiosk ordering,
+> dashboard, database activation and service/tunnel instructions, use
+> [the current implementation guide](backend-implementation.md). No deployment has occurred.
+
 # Deployment preparation — no activation authorized
 
 No Cloudflare setting, DNS record, tunnel, service, database, dependency, or live

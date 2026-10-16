@@ -1,29 +1,11 @@
-// Phase one only: three screens, an order-type choice, and a browsable menu.
-// These cup photographs are temporary. Replace image paths with real product photos later.
-const products = [
-  { name: 'Signature Choco', category: 'Non Coffee', prices: [75, 90], image: 'coffee-07.png' },
-  { name: 'Strawberry Milk', category: 'Non Coffee', prices: [70, 85], image: 'coffee-01.png' },
-  { name: 'Blueberry Milk', category: 'Non Coffee', prices: [70, 85], image: 'coffee-03.png' },
-  { name: 'Strawberry Choco', category: 'Non Coffee', prices: [80, 95], image: 'coffee-08.png' },
-  { name: 'Oreo Milk', category: 'Non Coffee', prices: [75, 90], image: 'coffee-02.png' },
-  { name: 'Double Berry Milk', category: 'Non Coffee', prices: [80, 95], image: 'coffee-03.png' },
-  { name: 'Biscoff Milk', category: 'Non Coffee', prices: [80, 95], image: 'coffee-01.png' },
-  { name: 'Matcha Creamy', category: 'Matcha', prices: [80, 95], image: 'coffee-06.png' },
-  { name: 'Matcha Grassy', category: 'Matcha', prices: [80, 95], image: 'coffee-06.png' },
-  { name: 'Strawberry Matcha', category: 'Matcha', prices: [90, 105], image: 'coffee-06.png' },
-  { name: 'Blueberry Matcha', category: 'Matcha', prices: [90, 105], image: 'coffee-06.png' },
-  { name: 'Oreo Matcha', category: 'Matcha', prices: [90, 105], image: 'coffee-06.png' },
-  { name: 'White Mocha Matcha', category: 'Matcha', prices: [90, 105], image: 'coffee-06.png' },
-  { name: 'Dirty Matcha', category: 'Matcha', prices: [90, 105], image: 'coffee-06.png' },
-  { name: 'Choco Matcha', category: 'Matcha', prices: [90, 105], image: 'coffee-06.png' },
-  { name: 'Seasalt Matcha', category: 'Matcha', prices: [90, 105], image: 'coffee-06.png' },
-  { name: 'Orange', category: 'Sparkling Soda', prices: [50], image: 'coffee-04.png' },
-  { name: 'Green Apple', category: 'Sparkling Soda', prices: [50], image: 'coffee-05.png' },
-  { name: 'Strawberry', category: 'Sparkling Soda', prices: [50], image: 'coffee-04.png' },
-  { name: 'Blueberry', category: 'Sparkling Soda', prices: [50], image: 'coffee-05.png' },
-  { name: 'Lychee', category: 'Sparkling Soda', prices: [50], image: 'coffee-04.png' }
-];
-
+import {request,money,element as el,imageURL} from './shared/api.js';
+import {cartTotal,orderPayload} from './shared/cart.js';
+let products=[];
+let categories=[];
+let cart=[];
+let pending=null;
+let submitting=false;
+try { pending=JSON.parse(sessionStorage.getItem('ksl_pending')||'null'); if(pending){cart=pending.cart;} }catch{sessionStorage.removeItem('ksl_pending');}
 let selectedOrderType = null;
 let currentScreen = 'welcome';
 let currentCategory = 'All';
@@ -55,6 +37,7 @@ function showScreen(screenId) {
 }
 
 function selectOrderType(type) {
+  if(pending){showMessage('Confirm your pending order first.');return;}
   selectedOrderType = type;
   document.querySelectorAll('.order-option').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.order === type));
@@ -74,20 +57,93 @@ function continueToMenu() {
 }
 
 function renderProducts(category = 'All') {
-  const visibleProducts = products.filter(product => category === 'All' || product.category === category);
-  document.getElementById('category-title').innerHTML = `${category === 'All' ? 'All drinks' : category} <span>${visibleProducts.length}</span>`;
-  document.getElementById('products').innerHTML = visibleProducts.map((product, index) => `
-    <article class="product" style="--i:${Math.min(index, 7)}">
-      <div class="product-photo"><img src="assets/${product.image}" alt="" loading="lazy" width="240" height="300"></div>
-      <h3>${product.name}</h3>
-      <div class="product-details"><span>${product.prices.length === 2 ? '12 oz / 16 oz' : '16 oz'}</span></div>
-      <div class="product-bottom"><span class="price">₱${product.prices[0]}${product.prices.length === 2 ? ` <small>/ ₱${product.prices[1]}</small>` : ''}</span><button class="add-preview" aria-label="${product.name}: ordering coming soon" title="Ordering coming soon">+</button></div>
-    </article>`).join('');
+  const visible=products.filter(p=>category==='All'||p.category===category);
+  const title=document.getElementById('category-title');
+  title.replaceChildren(document.createTextNode(category==='All'?'All drinks ':category+' '),el('span',{text:visible.length}));
+  document.getElementById('products').replaceChildren(...visible.map((p,index)=>{
+    const variants=p.variants.filter(v=>v.is_active);
+    const available=p.is_active&&p.category_active&&variants.length>0;
+    return el('article',{class:'product',style:`--i:${Math.min(index,7)}`},
+      el('div',{class:'product-photo'},el('img',{src:imageURL(p.image_path),alt:'',loading:'lazy',width:240,height:300})),
+      el('h3',{text:p.name}),el('div',{class:'product-details'},el('span',{text:variants.map(v=>v.label).join(' / ')})),
+      el('div',{class:'product-bottom'},el('span',{class:'price'},document.createTextNode(available?money(variants[0].price_centavos):'Unavailable'),...(available&&variants.length>1?[el('small',{text:' / '+variants.slice(1).map(v=>money(v.price_centavos)).join(' / ')})]:[])),
+        el('button',{class:'add-preview','aria-label':`Choose ${p.name}`,disabled:!available||!!pending,text:'+',onclick:()=>chooseSize(p)})));
+  }));
 }
-
+function showMessage(text){
+  const toast=document.getElementById('toast');toast.textContent=text;toast.classList.add('visible');
+  clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>toast.classList.remove('visible'),2500);
+}
+async function loadMenu(){
+  const state=document.getElementById('menu-state');
+  if(!products.length)state.textContent='Loading the menu…';
+  try{
+    const menu=await request('/v1/menu',{signal:AbortSignal.timeout(10000)});
+    products=menu.products;categories=menu.categories;
+    document.getElementById('counter-note').textContent='Unpaid · '+menu.settings.counter_note;
+    const nav=document.querySelector('.categories');
+    nav.replaceChildren(el('span',{class:'category-indicator','aria-hidden':true}),...['All',...categories.map(c=>c.name)].map(name=>el('button',{
+      class:'category'+(name===currentCategory?' active':''),'data-category':name,'aria-pressed':name===currentCategory,
+      text:name==='All'?'All drinks':name,onclick:()=>filterProducts(name)})));
+    if(!['All',...categories.map(c=>c.name)].includes(currentCategory))currentCategory='All';
+    state.replaceChildren();if(!products.length)state.textContent='The menu is empty. Please ask at the counter.';
+    renderProducts(currentCategory);if(currentScreen==='menu')updateCategoryIndicator();
+  }catch{
+    state.replaceChildren(el('span',{text:products.length?'Café server unavailable—please try again later. The displayed menu may be out of date.':'Café server unavailable—please try again later or ask at the counter.'}),el('button',{text:'Retry',onclick:loadMenu}));
+  }
+}
+function chooseSize(product){
+  document.getElementById('size-title').textContent=product.name;
+  const dialog=document.getElementById('size-dialog');
+  document.getElementById('size-options').replaceChildren(...product.variants.filter(v=>v.is_active).map(v=>el('button',{
+    class:'button size-choice',text:`${v.label} · ${money(v.price_centavos)}`,onclick:()=>{
+      if(pending)return;const existing=cart.find(i=>i.variant_id===v.id);
+      if(existing){if(existing.quantity>=99){showMessage('Maximum 99 of each drink.');return;}existing.quantity++;}
+      else cart.push({variant_id:v.id,name:product.name,label:v.label,price_centavos:v.price_centavos,quantity:1});
+      dialog.close();renderCart();showMessage('Added to your order');
+    }})));
+  dialog.showModal();
+}
+function renderCart(){
+  const count=cart.reduce((s,i)=>s+i.quantity,0);const button=document.getElementById('open-cart');
+  button.hidden=!count;button.textContent=`Review order (${count}) · ${money(cartTotal(cart))}`;
+  document.getElementById('cart-type').textContent=pending?.body.order_type||selectedOrderType||'';
+  document.getElementById('cart-items').replaceChildren(...cart.map(item=>el('div',{class:'cart-line'},
+    el('div',{},el('strong',{text:item.name}),el('small',{text:`${item.label} · ${money(item.price_centavos)}`})),
+    el('div',{class:'quantity-control'},
+      el('button',{text:'−','aria-label':`Reduce ${item.name}`,disabled:!!pending||submitting,onclick:()=>changeQuantity(item,-1)}),
+      el('span',{text:item.quantity}),el('button',{text:'+','aria-label':`Increase ${item.name}`,disabled:!!pending||submitting||item.quantity>=99,onclick:()=>changeQuantity(item,1)}),
+      el('button',{text:'Remove',disabled:!!pending||submitting,onclick:()=>{cart=cart.filter(i=>i!==item);renderCart();}})))));
+  document.getElementById('cart-total').textContent=`Estimated total · ${money(cartTotal(cart))}`;
+  document.getElementById('submit-order').disabled=submitting||!cart.length;
+  document.getElementById('submit-order').textContent=submitting?'Sending…':pending?'Retry same order':'Place unpaid order';
+}
+function changeQuantity(item,delta){item.quantity+=delta;if(item.quantity<=0)cart=cart.filter(i=>i!==item);renderCart();}
+async function submitOrder(){
+  if(submitting||!cart.length)return;
+  const message=document.getElementById('cart-message');
+  try{
+    if(!pending){pending={key:crypto.randomUUID(),body:orderPayload(selectedOrderType,cart),cart:structuredClone(cart)};sessionStorage.setItem('ksl_pending',JSON.stringify(pending));}
+    submitting=true;renderCart();renderProducts(currentCategory);message.textContent='Sending your unpaid order…';
+    const result=await request('/v1/orders',{method:'POST',body:pending.body,key:pending.key,signal:AbortSignal.timeout(20000)});
+    pending=null;sessionStorage.removeItem('ksl_pending');cart=[];
+    document.getElementById('cart-dialog').close();
+    document.getElementById('order-reference').textContent=result.reference;
+    document.getElementById('order-confirmed-total').textContent=`Total · ${money(result.total_centavos)}`;
+    document.getElementById('confirmation').showModal();message.textContent='';
+  }catch(error){
+    if(error.status&&error.status<500&&![408,429].includes(error.status)){pending=null;sessionStorage.removeItem('ksl_pending');message.textContent=error.message+' Review your cart before sending again.';await loadMenu();}
+    else message.textContent='We could not confirm the result. Retry this same order; your submission key is saved to prevent duplicates.';
+  }finally{submitting=false;renderCart();renderProducts(currentCategory);}
+}
+document.getElementById('open-cart').addEventListener('click',()=>{renderCart();document.getElementById('cart-dialog').showModal();});
+document.getElementById('submit-order').addEventListener('click',submitOrder);
+document.getElementById('new-order').addEventListener('click',()=>{document.getElementById('confirmation').close();selectedOrderType=null;document.getElementById('continue').disabled=true;document.querySelectorAll('[data-order]').forEach(b=>b.setAttribute('aria-pressed','false'));showScreen('welcome');loadMenu();});
+document.getElementById('confirmation').addEventListener('cancel',event=>event.preventDefault());
 function updateCategoryIndicator() {
   const activeButton = document.querySelector('.category.active');
   const indicator = document.querySelector('.category-indicator');
+  if(!activeButton||!indicator)return;
   indicator.style.width = activeButton.offsetWidth + 'px';
   indicator.style.transform = `translateX(${activeButton.offsetLeft}px)`;
 }
@@ -108,18 +164,11 @@ document.getElementById('start-order').addEventListener('click', () => showScree
 document.querySelectorAll('[data-screen]').forEach(button => button.addEventListener('click', () => showScreen(button.dataset.screen)));
 document.querySelectorAll('[data-order]').forEach(button => button.addEventListener('click', () => selectOrderType(button.dataset.order)));
 document.getElementById('continue').addEventListener('click', continueToMenu);
-document.querySelectorAll('.category').forEach(button => button.addEventListener('click', () => filterProducts(button.dataset.category)));
-// Preview feedback only: no cart, quantities, checkout, or order is created.
-document.getElementById('products').addEventListener('click', event => {
-  if (!event.target.closest('.add-preview')) return;
-  const toast = document.getElementById('toast');
-  toast.textContent = 'Ordering is not available yet.';
-  toast.classList.add('visible');
-  window.clearTimeout(toastTimeout);
-  toastTimeout = window.setTimeout(() => toast.classList.remove('visible'), 3200);
-});
 window.addEventListener('resize', () => { if (currentScreen === 'menu') updateCategoryIndicator(); });
-renderProducts();
+window.addEventListener('online',loadMenu);
+renderCart();loadMenu();
+setInterval(()=>{if(currentScreen==='menu'&&!document.hidden)loadMenu();},30000);
+if(pending){selectedOrderType=pending.body.order_type;document.getElementById('cart-message').textContent='An order is awaiting confirmation. Retry the same order to avoid duplicates.';document.getElementById('cart-dialog').showModal();}
 
 // Mouse movement tilts only the drink layers; touch scrolling stays native.
 const coffeeStage = document.querySelector('.coffee-stage');

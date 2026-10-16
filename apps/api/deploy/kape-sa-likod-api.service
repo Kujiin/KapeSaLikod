@@ -1,0 +1,33 @@
+# TEMPLATE ONLY. Install/enable/restart only after explicit approval.
+[Unit]
+Description=Kape sa Likod API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=kape-api
+Group=kape-api
+WorkingDirectory=/srv/kape-sa-likod/current/apps/api
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/kape-sa-likod/api.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/kape-sa-likod/uploads
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

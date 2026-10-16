@@ -8,14 +8,14 @@ export const digest = data => createHash('sha256').update(data).digest('hex');
 
 // No directory discovery is used to decide what to publish.
 for (const [name, hash] of Object.entries(manifest)) {
-  if (!/^(index\.html|script\.js|style\.css|assets\/[a-z0-9-]+\.png)$/.test(name)
+  if (!/^(index\.html|script\.js|style\.css|_headers|_routes\.json|assets\/[a-z0-9-]+\.png|shared\/(api|cart)\.js|swaggar\/(index\.html|style\.css|app\.js|ui\.js|catalog\.js|orders\.js|settings\.js))$/.test(name)
       || !/^[a-f0-9]{64}$/.test(hash)) throw new Error(`Invalid public manifest entry: ${name}`);
 }
 if (!['index.html', 'script.js', 'style.css'].every(name => name in manifest)) {
   throw new Error('Missing kiosk entry files');
 }
 
-export async function verifyTree(root) {
+export async function verifyTree(root, checkHashes = true) {
   const names = [];
   async function walk(path, prefix = '') {
     const stat = await lstat(path);
@@ -26,16 +26,16 @@ export async function verifyTree(root) {
       const info = await lstat(full);
       if (info.isSymbolicLink()) throw new Error(`Symlink rejected: ${name}`);
       if (info.isDirectory()) {
-        if (name !== 'assets') throw new Error(`Unexpected directory: ${name}`);
+        if (!['assets','shared','swaggar'].includes(name)) throw new Error(`Unexpected directory: ${name}`);
         await walk(full, name + '/');
       } else {
         if (!info.isFile() || !(name in manifest)) throw new Error(`Unapproved file: ${name}`);
-        if (digest(await readFile(full)) !== manifest[name]) throw new Error(`Content changed: ${name}`);
+        if (checkHashes && digest(await readFile(full)) !== manifest[name]) throw new Error(`Content changed: ${name}`);
         names.push(name);
       }
     }
   }
   await walk(root);
-  if (names.length !== Object.keys(manifest).length) throw new Error('Public files missing');
+  if (checkHashes && names.length !== Object.keys(manifest).length) throw new Error('Public files missing');
   return names.sort();
 }

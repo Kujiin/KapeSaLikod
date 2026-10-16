@@ -25,3 +25,12 @@ uploads/
 *.dump
 *.backup
 pgdata/
+
+# Local test/browser outputs and libpq credentials
+__pycache__/
+*.pyc
+artifacts/
+playwright-report/
+test-results/
+.pgpass
+.pg_service.conf

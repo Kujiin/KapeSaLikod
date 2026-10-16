@@ -1,0 +1,76 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
+import { JSDOM } from '../../kiosk/node_modules/jsdom/lib/api.js';
+import { buildApp } from '../src/app.js';
+import { configuration } from '../src/config.js';
+import { poolFor } from '../src/db.js';
+import { hashPassword } from '../src/security.js';
+const origin='http://127.0.0.1:4173';
+async function until(predicate,message){for(let i=0;i<150;i++){if(predicate())return;await delay(20);}assert.fail(message);}
+function click(node){assert(node,'Missing clickable element');node.click();}
+function button(label){return [...document.querySelectorAll('button')].find(b=>b.textContent===label);}
+test('DOM interactions backed by real API/PostgreSQL (not visual browser verification)',async t=>{
+  const config=configuration(),pool=poolFor(config),app=await buildApp({config,pool});
+  const intervals=[];let cookie='';let lost=false;let submissions=0;
+  const native={fetch:globalThis.fetch,setInterval:globalThis.setInterval};
+  const password=randomUUID();
+  await pool.query("INSERT INTO kape.admin_users(email,display_name,role,password_hash) VALUES('dom@example.test','DOM Owner','owner',$1)",[await hashPassword(password)]);
+  globalThis.setInterval=(...args)=>{const timer=native.setInterval(...args);intervals.push(timer);return timer;};
+  globalThis.fetch=async(url,options={})=>{
+    const response=await app.inject({method:options.method||'GET',url:url.replace('/api',''),headers:{origin,...(cookie?{cookie}:{}),...options.headers},payload:options.body});
+    if(response.headers['set-cookie'])cookie=response.headers['set-cookie'].split(';')[0];
+    if(url==='/api/v1/orders'){submissions++;if(!lost){lost=true;throw new TypeError('Simulated lost response after successful commit');}}
+    return new Response(response.rawPayload,{status:response.statusCode,headers:response.headers});
+  };
+  let dom;
+  function mount(html){
+    dom?.window.close();dom=new JSDOM(html,{url:origin,pretendToBeVisual:true});
+    for(const key of ['window','document','sessionStorage','FormData','navigator'])Object.defineProperty(globalThis,key,{value:dom.window[key],configurable:true});
+    window.matchMedia=()=>({matches:true,addEventListener(){}});
+    window.HTMLElement.prototype.scrollTo=function(){};
+    window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};window.HTMLDialogElement.prototype.close=function(){this.open=false;};
+    globalThis.confirm=()=>true;
+  }
+  t.after(async()=>{for(const timer of intervals)clearInterval(timer);dom?.window.close();globalThis.fetch=native.fetch;globalThis.setInterval=native.setInterval;await app.close();});
+  const html=await readFile(new URL('../../kiosk/public/index.html',import.meta.url),'utf8');mount(html);
+  const legacy=new JSDOM(await readFile(new URL('../../../index.html',import.meta.url),'utf8'));
+  for(const name of ['welcome','order-type'])assert.equal(document.getElementById(name).outerHTML,legacy.window.document.getElementById(name).outerHTML);
+  legacy.window.close();
+  const oldCSS=await readFile(new URL('../../../style.css',import.meta.url),'utf8');
+  assert((await readFile(new URL('../../kiosk/public/style.css',import.meta.url),'utf8')).startsWith(oldCSS),'Original kiosk styles must be preserved');
+  await import('../../kiosk/public/script.js');
+  await until(()=>document.querySelectorAll('.product').length===21,'Kiosk menu did not render');
+  click(document.getElementById('start-order'));await delay(10);click(document.querySelector('[data-order="Dine In"]'));click(document.getElementById('continue'));await delay(10);
+  assert.equal(document.getElementById('menu').hidden,false);
+  click([...document.querySelectorAll('.category')].find(n=>n.textContent==='Matcha'));assert.equal(document.querySelectorAll('.product').length,9);
+  click([...document.querySelectorAll('.category')].find(n=>n.textContent==='All drinks'));
+  click(document.querySelector('[aria-label="Choose Signature Choco"]'));assert.equal(document.getElementById('size-dialog').open,true);
+  click(document.querySelector('#size-options button'));click(document.getElementById('open-cart'));click(document.querySelector('[aria-label="Increase Signature Choco"]'));
+  assert.match(document.getElementById('cart-items').textContent,/Signature Choco/);
+  click(document.getElementById('submit-order'));await until(()=>document.getElementById('cart-message').textContent.includes('Retry this same order'),'Lost-response warning missing');
+  const key=JSON.parse(sessionStorage.getItem('ksl_pending')).key;
+  click(document.getElementById('submit-order'));await until(()=>document.getElementById('confirmation').open,'Confirmation did not open');
+  assert.equal(submissions,2);assert.match(document.getElementById('order-reference').textContent,/^KSL-/);
+  const {rows:[{count}]}=await pool.query('SELECT count(*) FROM kape.idempotency_keys WHERE key=$1',[key]);assert.equal(Number(count),1);
+  click(document.getElementById('new-order'));await delay(20);assert.equal(document.getElementById('welcome').hidden,false);
+  mount(await readFile(new URL('../../kiosk/public/swaggar/index.html',import.meta.url),'utf8'));
+  await import('../../kiosk/public/swaggar/app.js');
+  const form=document.getElementById('login-form');form.elements.email.value='dom@example.test';form.elements.password.value=password;
+  form.dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true}));
+  await until(()=>!document.getElementById('workspace').hidden&&document.querySelectorAll('.stat').length===6,'Admin login/overview did not render');
+  assert.equal(form.elements.password.value,'');
+  click(button('Products'));await until(()=>document.querySelector('[aria-label="Search products"]'),'Product management did not render');
+  const search=document.querySelector('[aria-label="Search products"]');search.value='Signature Choco';search.dispatchEvent(new window.Event('input'));
+  click(button('Edit'));await until(()=>document.querySelector('[name="description"]'),'Edit form missing');
+  document.querySelector('[name="description"]').value='DOM-tested description';
+  const editorForm=document.querySelector('#editor-content form');editorForm.dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true}));
+  await until(()=>!document.getElementById('editor').open,'Product save did not finish');
+  const {rows:[product]}=await pool.query("SELECT description FROM kape.products WHERE name='Signature Choco'");assert.equal(product.description,'DOM-tested description');
+  click(button('Orders'));await until(()=>document.querySelector('[aria-label="Search orders"]'),'Orders view missing');
+  assert.match(document.getElementById('content').textContent,/KSL-/);
+  click(button('Sign out'));await until(()=>!document.getElementById('login-view').hidden,'Logout did not finish');
+  assert.equal(document.getElementById('content').textContent,'');
+});
