@@ -1,4 +1,5 @@
-import {el,money,badge,table,empty,panel,editor} from './ui.js';
+import {dialogController} from '../shared/dialogs.js';
+import {el,money,badge,label,table,empty,panel,editor} from './ui.js';
 const transitions={pending:['accepted','preparing','cancelled'],accepted:['preparing','cancelled'],preparing:['ready','cancelled'],ready:['completed','cancelled'],completed:[],cancelled:[]};
 export async function orderDetail(ctx,id){
   try{
@@ -8,15 +9,15 @@ export async function orderDetail(ctx,id){
       el('p',{class:'muted',text:'Cash payment is recorded only after a staff member confirms it was received.'}));
     const actions=el('div',{class:'form-actions'});const error=el('p',{role:'alert'});
     async function action(path,body){try{actions.querySelectorAll('button').forEach(b=>b.disabled=true);await ctx.api(`/v1/admin/orders/${id}/${path}`,{method:'POST',body});await orderDetail(ctx,id);await ctx.refresh();}catch(e){error.textContent=e.message;actions.querySelectorAll('button').forEach(b=>b.disabled=false);}}
-    for(const status of transitions[order.status])actions.append(el('button',{text:`Mark ${status}`,class:status==='cancelled'?'danger':'',onclick:()=>{if(confirm(`Mark order ${status}?`))action('status',{status});}}));
+    for(const status of transitions[order.status])actions.append(el('button',{text:`Mark ${label(status)}`,class:status==='cancelled'?'danger':'',onclick:()=>{if(confirm(`Mark order ${status}?`))action('status',{status});}}));
     if(order.payment_status==='unpaid'&&order.status!=='cancelled')actions.append(el('button',{class:'primary',text:'Record cash received',onclick:()=>{if(confirm(`Confirm you received ${money(order.total_centavos)} in cash? This records a real payment.`))action('cash-payment');}}));
-    content.append(error,actions,el('h3',{text:'Status history'}),el('ol',{class:'history'},...order.history.map(h=>el('li',{text:`${h.status} · ${new Date(h.created_at).toLocaleString()}`}))));
-    const dialog=document.getElementById('editor');if(dialog.open)dialog.close();editor(order.reference,content);
+    content.append(error,actions,el('h3',{text:'Status history'}),el('ol',{class:'history'},...order.history.map(h=>el('li',{text:`${label(h.status)} · ${new Date(h.created_at).toLocaleString()}`}))));
+    const dialog=document.getElementById('editor');if(dialog.open)dialogController(document.querySelector('.admin-kiosk')).close(dialog);editor(order.reference,content);
   }catch(e){ctx.notice(e.message);}
 }
 export async function ordersView(ctx){
   let offset=0;const search=el('input',{type:'search',placeholder:'Search reference number','aria-label':'Search orders'});
-  const status=el('select',{'aria-label':'Filter order status'},el('option',{value:'',text:'All statuses'}),...Object.keys(transitions).map(s=>el('option',{value:s,text:s})));
+  const status=el('select',{'aria-label':'Filter order status'},el('option',{value:'',text:'All statuses'}),...Object.keys(transitions).map(s=>el('option',{value:s,text:label(s)})));
   const list=el('div');const position=el('span',{text:'1–50'});
   const previous=el('button',{text:'Previous',disabled:true,onclick:()=>{offset=Math.max(0,offset-50);load();}});
   const next=el('button',{text:'Next',onclick:()=>{offset+=50;load();}});
@@ -34,8 +35,8 @@ export async function ordersView(ctx){
 export async function overviewView(ctx){
   const data=await ctx.api('/v1/admin/overview');const c=data.counts;
   return el('div',{},el('div',{class:'stats'},...[
-    ['Products',c.products,'Across your catalog'],['Available',c.available,`${c.unavailable} unavailable`],['Orders',c.orders,'All recorded orders'],['Pending',c.pending,'Awaiting preparation'],['Completed',c.completed,'Finished orders'],['Cash collected',money(c.collected_centavos),'Recorded payments only']
-  ].map(([title,value,note])=>el('div',{class:'stat'},el('span',{text:title}),el('strong',{text:value}),el('span',{text:note})))),
-  panel('Recent orders',data.recent.length?table(['Reference','Status','Payment','Total',''],data.recent.map(o=>[o.reference,badge(o.status),badge(o.payment_status),money(o.total_centavos),el('button',{text:'View',onclick:()=>orderDetail(ctx,o.id)})])):empty('Your first order will appear here.')),
-  panel('Recorded sales',el('p',{class:'muted',text:'Latest 30 days with recorded payments, grouped by café timezone. Unpaid orders are excluded.'}),data.sales.length?table(['Day','Payments','Cash collected'],data.sales.map(s=>[s.day.slice(0,10),String(s.payments),money(s.centavos)])):empty('No payments have been recorded.')));
+    ['Products',c.products],['Available',c.available],['Orders',c.orders],['Pending',c.pending],['Completed',c.completed],['Cash collected',money(c.collected_centavos)]
+  ].map(([title,value])=>el('div',{class:'stat'},el('span',{text:title}),el('strong',{text:value})))),
+  panel('Recent orders',data.recent.length?table(['Reference','Status','Payment','Total',''],data.recent.map(o=>[o.reference,badge(o.status),badge(o.payment_status),money(o.total_centavos),el('button',{text:'View',onclick:()=>orderDetail(ctx,o.id)})])):empty('No orders yet.')),
+  panel('Recorded sales',el('p',{class:'muted',text:'Paid orders · Café timezone'}),data.sales.length?table(['Day','Payments','Cash collected'],data.sales.map(s=>[s.day.slice(0,10),String(s.payments),money(s.centavos)])):empty('No payments have been recorded.')));
 }

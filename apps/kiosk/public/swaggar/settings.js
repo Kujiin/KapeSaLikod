@@ -1,4 +1,4 @@
-import {el,badge,table,empty,panel,input,select,checkbox,editor,submitForm} from './ui.js';
+import {el,badge,label,table,empty,panel,input,select,checkbox,editor,submitForm} from './ui.js';
 export async function settingsView(ctx){
   const settings=await ctx.api('/v1/admin/settings');
   const passwordForm=el('form',{},input('Current password','current_password','',{type:'password',required:true,autocomplete:'current-password',maxlength:128}),input('New password (12+ characters)','new_password','',{type:'password',required:true,minlength:12,maxlength:128,autocomplete:'new-password'}));
@@ -14,7 +14,7 @@ export async function settingsView(ctx){
 export async function accountsView(ctx){
   const {accounts}=await ctx.api('/v1/admin/accounts');
   function edit(account){
-    const form=el('form',{},input('Display name','display_name',account?.display_name||'',{required:true,maxlength:120}),select('Role','role',account?.role||'staff',[['staff','Staff · orders'],['manager','Manager · menu and operations'],['owner','Owner · accounts and operations']]));
+    const form=el('form',{},input('Display name','display_name',account?.display_name||'',{required:true,maxlength:120}),select('Role','role',account?.role||'staff',[['staff','Staff'],['manager','Manager'],['owner','Owner']]));
     if(account)form.append(checkbox('Active account','is_active',account.is_active));
     else form.append(input('Email','email','',{type:'email',required:true,autocomplete:'off',maxlength:254}),input('Initial password (12+ characters)','password','',{type:'password',required:true,minlength:12,maxlength:128,autocomplete:'new-password'}));
     editor(account?'Edit account':'Create staff account',submitForm(form,'Save account',async data=>{
@@ -23,10 +23,10 @@ export async function accountsView(ctx){
       if(account?.id===ctx.user.id)ctx.signedOut('Account updated. Sign in again.');
     },ctx));
   }
-  return panel('Staff accounts',el('div',{class:'toolbar'},el('p',{class:'muted',text:'Owner access is required to manage accounts. Account changes revoke existing sessions.'}),el('button',{class:'primary',text:'Create account',onclick:()=>edit()})),table(['Name','Email','Role','Status',''],accounts.map(a=>[a.display_name,a.email,a.role,badge(a.is_active?'available':'unavailable'),el('button',{text:'Edit',onclick:()=>edit(a)})])));
+  return panel('Staff accounts',el('div',{class:'toolbar'},el('p',{class:'muted',text:'Account changes sign that user out.'}),el('button',{class:'primary',text:'Create account',onclick:()=>edit()})),table(['Name','Email','Role','Status',''],accounts.map(a=>[a.display_name,a.email,label(a.role),badge(a.is_active?'available':'unavailable'),el('button',{text:'Edit',onclick:()=>edit(a)})])));
 }
 export async function auditView(ctx){
   let offset=0;const list=el('div');const back=el('button',{text:'Previous',disabled:true,onclick:()=>{offset=Math.max(0,offset-50);load();}});const next=el('button',{text:'Next',onclick:()=>{offset+=50;load();}});
-  async function load(){try{const {events}=await ctx.api('/v1/admin/audit?offset='+offset);back.disabled=!offset;next.disabled=events.length<50;list.replaceChildren(events.length?table(['When','Staff','Action','Entity','Details'],events.map(e=>[new Date(e.created_at).toLocaleString(),e.actor||'System',e.action,`${e.entity_type} · ${e.entity_id}`,el('details',{},el('summary',{text:'Details'}),el('pre',{text:JSON.stringify(e.metadata,null,2)}))])):empty('No administrative activity yet.'));}catch(e){ctx.notice(e.message);}}
+  async function load(){try{const {events}=await ctx.api('/v1/admin/audit?offset='+offset);back.disabled=!offset;next.disabled=events.length<50;list.replaceChildren(events.length?table(['When','Staff','Action','Entity','Details'],events.map(e=>[new Date(e.created_at).toLocaleString(),e.actor||'System',label(e.action),`${e.entity_type} · ${e.entity_id}`,el('details',{},el('summary',{text:'Details'}),el('pre',{text:JSON.stringify(e.metadata,null,2)}))])):empty('No administrative activity yet.'));}catch(e){ctx.notice(e.message);}}
   await load();return panel('Audit history',list,el('div',{class:'pager'},back,next));
 }

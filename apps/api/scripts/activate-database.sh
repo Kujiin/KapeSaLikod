@@ -38,7 +38,7 @@ sudo chown postgres:postgres "$activation_dir"
 trap 'sudo -n -u postgres rm -rf -- "$activation_dir"' EXIT
 tar -C "$api_dir" -cf - scripts/database.py db/migrations db/seeds | sudo -u postgres tar -C "$activation_dir" -xf -
 # Runner checks existing ledger checksums; all pending migrations commit together.
-sudo -u postgres python3 "$activation_dir/scripts/database.py" migrate --socket-dir /var/run/postgresql --port 5432 --approve-write
+sudo -u postgres python3 "$activation_dir/scripts/database.py" migrate --through 003 --socket-dir /var/run/postgresql --port 5432 --approve-write
 catalog_state=$(sudo -u postgres psql -X -w -At -h /var/run/postgresql -p 5432 -U postgres -d kape_sa_likod -v ON_ERROR_STOP=1 -c 'SELECT (SELECT count(*) FROM kape.categories) + (SELECT count(*) FROM kape.product_sizes) + (SELECT count(*) FROM kape.products) + (SELECT count(*) FROM kape.product_variants)')
 if [[ "$catalog_state" == 0 ]]; then
   sudo -u postgres python3 "$activation_dir/scripts/database.py" seed --socket-dir /var/run/postgresql --port 5432 --approve-write --require-empty

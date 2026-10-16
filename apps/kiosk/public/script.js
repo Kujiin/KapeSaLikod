@@ -1,5 +1,7 @@
+import {dialogController} from './shared/dialogs.js';
 import {request,money,element as el,imageURL} from './shared/api.js';
 import {cartTotal,orderPayload} from './shared/cart.js';
+const dialogs=dialogController(document.querySelector('.kiosk'));
 let products=[];
 let categories=[];
 let cart=[];
@@ -100,9 +102,9 @@ function chooseSize(product){
       if(pending)return;const existing=cart.find(i=>i.variant_id===v.id);
       if(existing){if(existing.quantity>=99){showMessage('Maximum 99 of each drink.');return;}existing.quantity++;}
       else cart.push({variant_id:v.id,name:product.name,label:v.label,price_centavos:v.price_centavos,quantity:1});
-      dialog.close();renderCart();showMessage('Added to your order');
+      dialogs.close(dialog);renderCart();showMessage('Added to your order');
     }})));
-  dialog.showModal();
+  dialogs.open(dialog);
 }
 function renderCart(){
   const count=cart.reduce((s,i)=>s+i.quantity,0);const button=document.getElementById('open-cart');
@@ -127,18 +129,18 @@ async function submitOrder(){
     submitting=true;renderCart();renderProducts(currentCategory);message.textContent='Sending your unpaid order…';
     const result=await request('/v1/orders',{method:'POST',body:pending.body,key:pending.key,signal:AbortSignal.timeout(20000)});
     pending=null;sessionStorage.removeItem('ksl_pending');cart=[];
-    document.getElementById('cart-dialog').close();
+    dialogs.close(document.getElementById('cart-dialog'));
     document.getElementById('order-reference').textContent=result.reference;
     document.getElementById('order-confirmed-total').textContent=`Total · ${money(result.total_centavos)}`;
-    document.getElementById('confirmation').showModal();message.textContent='';
+    dialogs.open(document.getElementById('confirmation'));message.textContent='';
   }catch(error){
     if(error.status&&error.status<500&&![408,429].includes(error.status)){pending=null;sessionStorage.removeItem('ksl_pending');message.textContent=error.message+' Review your cart before sending again.';await loadMenu();}
     else message.textContent='We could not confirm the result. Retry this same order; your submission key is saved to prevent duplicates.';
   }finally{submitting=false;renderCart();renderProducts(currentCategory);}
 }
-document.getElementById('open-cart').addEventListener('click',()=>{renderCart();document.getElementById('cart-dialog').showModal();});
+document.getElementById('open-cart').addEventListener('click',()=>{renderCart();dialogs.open(document.getElementById('cart-dialog'));});
 document.getElementById('submit-order').addEventListener('click',submitOrder);
-document.getElementById('new-order').addEventListener('click',()=>{document.getElementById('confirmation').close();selectedOrderType=null;document.getElementById('continue').disabled=true;document.querySelectorAll('[data-order]').forEach(b=>b.setAttribute('aria-pressed','false'));showScreen('welcome');loadMenu();});
+document.getElementById('new-order').addEventListener('click',()=>{dialogs.close(document.getElementById('confirmation'));selectedOrderType=null;document.getElementById('continue').disabled=true;document.querySelectorAll('[data-order]').forEach(b=>b.setAttribute('aria-pressed','false'));showScreen('welcome');loadMenu();});
 document.getElementById('confirmation').addEventListener('cancel',event=>event.preventDefault());
 function updateCategoryIndicator() {
   const activeButton = document.querySelector('.category.active');
@@ -168,7 +170,7 @@ window.addEventListener('resize', () => { if (currentScreen === 'menu') updateCa
 window.addEventListener('online',loadMenu);
 renderCart();loadMenu();
 setInterval(()=>{if(currentScreen==='menu'&&!document.hidden)loadMenu();},30000);
-if(pending){selectedOrderType=pending.body.order_type;document.getElementById('cart-message').textContent='An order is awaiting confirmation. Retry the same order to avoid duplicates.';document.getElementById('cart-dialog').showModal();}
+if(pending){selectedOrderType=pending.body.order_type;document.getElementById('cart-message').textContent='An order is awaiting confirmation. Retry the same order to avoid duplicates.';dialogs.open(document.getElementById('cart-dialog'));}
 
 // Mouse movement tilts only the drink layers; touch scrolling stays native.
 const coffeeStage = document.querySelector('.coffee-stage');

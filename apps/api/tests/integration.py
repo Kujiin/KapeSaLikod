@@ -28,7 +28,7 @@ def main():
             started=True
             checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','postgres','-v','approve_provision=true','-f',API/'db/provision.sql'],stdout=subprocess.DEVNULL)
             for action in ['migrate','migrate','seed']:
-                checked(['python3',API/'scripts/database.py',action,'--socket-dir',socket,'--port','55433','--approve-write','--require-empty'],stdout=subprocess.DEVNULL)
+                checked(['python3',API/'scripts/database.py',action,'--socket-dir',socket,'--port','55433','--approve-write','--require-empty','--through','003'],stdout=subprocess.DEVNULL)
             preflight=[BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-f',API/'db/queries/production-preflight.sql']
             checked(preflight,stdout=subprocess.DEVNULL)
             checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-c',"INSERT INTO kape.categories(name) VALUES('preflight-test-only');"],stdout=subprocess.DEVNULL)
@@ -36,6 +36,11 @@ def main():
             assert mismatch.returncode != 0 and 'Activation counts differ' in mismatch.stderr
             checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-c',"DELETE FROM kape.categories WHERE name='preflight-test-only';"],stdout=subprocess.DEVNULL)
             print('PASS: read-only production preflight accepts expected data and rejects count mismatches.')
+            # Preserve a historical reference across the additive numbering migration.
+            checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-v','ON_ERROR_STOP=1','-c',"BEGIN; INSERT INTO kape.orders(id,order_type,total_centavos,reference) VALUES('00000000-0000-0000-0000-000000000099','Dine In',7500,'KSL-LEGACY-TEST'); INSERT INTO kape.order_items(order_id,variant_id,product_name,category_name,size_label,unit_price_centavos,quantity) SELECT '00000000-0000-0000-0000-000000000099',id,'Signature Choco','Non Coffee','12 oz',7500,1 FROM kape.product_variants ORDER BY id LIMIT 1; COMMIT;"],stdout=subprocess.DEVNULL)
+            for _ in range(2):
+                checked(['python3',API/'scripts/database.py','migrate','--socket-dir',socket,'--port','55433','--approve-write','--through','004'],stdout=subprocess.DEVNULL)
+            checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-v','ON_ERROR_STOP=1','-c',"DO $$ BEGIN IF (SELECT reference FROM kape.orders WHERE id='00000000-0000-0000-0000-000000000099') <> 'KSL-LEGACY-TEST' THEN RAISE EXCEPTION 'Historical reference changed'; END IF; END $$;"],stdout=subprocess.DEVNULL)
             ENV.update(PGHOST=str(socket),PGPORT='55433',PGUSER='kape_sa_likod_app',PGDATABASE='kape_sa_likod',UPLOAD_DIR=str(root/'uploads'),ALLOWED_ORIGINS='http://127.0.0.1:4173')
             bootstrap(API,ENV)
             # Reset only the bootstrap fixture in this disposable cluster.
@@ -49,7 +54,7 @@ def main():
                 checked([BIN/'pg_dump','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_sa_likod','-Fc','--no-owner'],stdout=output)
             checked([BIN/'createdb','-w','-h',socket,'-p','55433','-U','postgres','-O','kape_sa_likod_owner','kape_restore_check'])
             checked([BIN/'pg_restore','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_restore_check','--role=kape_sa_likod_owner','--no-owner','--exit-on-error','--single-transaction',dump],stdout=subprocess.DEVNULL)
-            checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_restore_check','-v','ON_ERROR_STOP=1','-c',"DO $$ BEGIN IF (SELECT count(*) FROM kape.schema_migrations) <> 3 OR NOT EXISTS (SELECT FROM kape.orders) THEN RAISE EXCEPTION 'Restore validation failed'; END IF; END $$;"],stdout=subprocess.DEVNULL)
+            checked([BIN/'psql','-X','-w','-h',socket,'-p','55433','-U','postgres','-d','kape_restore_check','-v','ON_ERROR_STOP=1','-c',"DO $$ BEGIN IF (SELECT count(*) FROM kape.schema_migrations) <> 4 OR NOT EXISTS (SELECT FROM kape.orders) THEN RAISE EXCEPTION 'Restore validation failed'; END IF; END $$;"],stdout=subprocess.DEVNULL)
             print('PASS: private custom-format backup restored transactionally into a separate disposable database.')
             if '--browser' in os.sys.argv:
                 checked(['node','--test',API/'tests/browser.test.js'],cwd=API)

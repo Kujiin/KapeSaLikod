@@ -22,7 +22,7 @@ export async function productsView(ctx){
 }
 function editProduct(ctx,catalog,p){
   const form=el('form');const fields=el('div',{class:'form-grid'},input('Product name','name',p?.name||'',{required:true,maxlength:120}),select('Category','category_id',p?.category_id||catalog.categories[0]?.id,catalog.categories.map(c=>[c.id,c.name])),input('Description','description',p?.description||'',{multiline:true,wide:true,maxlength:2000}),input('Menu position','sort_order',p?.sort_order||0,{type:'number',min:0,max:10000,required:true}),checkbox('Available','is_active',p?p.is_active:true));
-  form.append(fields,el('h3',{text:'Sizes and prices'}),el('p',{class:'muted',text:'Uncheck a size to remove it from the menu. Existing order history is preserved.'}));
+  form.append(fields,el('h3',{text:'Sizes and prices'}),el('p',{class:'muted',text:'Enable the sizes shown on the menu.'}));
   for(const size of catalog.sizes){const v=p?.variants.find(v=>v.size_id===size.id);form.append(el('div',{class:'variant-row'},el('strong',{text:size.label}),input('Price (₱)',`price_${size.id}`,v?(v.price_centavos/100).toFixed(2):'0.00',{type:'number',min:0,max:100000,step:'0.01',required:true}),checkbox('Enabled',`active_${size.id}`,p?!!v?.is_active:true)));}
   const preview=el('img',{class:'image-preview',src:imageURL(p?.image_path),alt:'Product image preview'});
   const file=el('input',{type:'file',name:'image',accept:'image/png,image/jpeg,image/webp','aria-label':'Product image'});
@@ -41,5 +41,5 @@ function editProduct(ctx,catalog,p){
 export async function categoriesView(ctx){
   const {categories}=await ctx.api('/v1/admin/catalog');
   function edit(c){const form=el('form',{},input('Category name','name',c?.name||'',{required:true,maxlength:120}),input('Display position','sort_order',c?.sort_order||0,{type:'number',min:0,max:10000,required:true}),checkbox('Enabled','is_active',c?c.is_active:true));editor(c?'Edit category':'Add category',submitForm(form,'Save category',async data=>ctx.api('/v1/admin/categories'+(c?'/'+c.id:''),{method:c?'PUT':'POST',body:{name:data.get('name'),sort_order:Number(data.get('sort_order')),is_active:data.has('is_active')}}),ctx));}
-  return panel('Menu categories',el('div',{class:'toolbar'},el('p',{class:'muted',text:'Set positions to reorder. Disable categories safely; deletion is unavailable to preserve products and history.'}),el('button',{class:'primary',text:'Add category',onclick:()=>edit()})),categories.length?table(['Name','Position','Status',''],categories.map(c=>[c.name,String(c.sort_order),badge(c.is_active?'available':'unavailable'),el('button',{text:'Edit',onclick:()=>edit(c)})])):empty('No categories yet.'));
+  return panel('Menu categories',el('div',{class:'toolbar'},el('p',{class:'muted',text:'Positions set the display order. Disabling a category hides its products.'}),el('button',{class:'primary',text:'Add category',onclick:()=>edit()})),categories.length?table(['Name','Position','Status',''],categories.map(c=>[c.name,String(c.sort_order),badge(c.is_active?'available':'unavailable'),el('button',{text:'Edit',onclick:()=>edit(c)})])):empty('No categories yet.'));
 }

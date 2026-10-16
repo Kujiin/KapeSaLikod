@@ -8,7 +8,7 @@ export const digest = data => createHash('sha256').update(data).digest('hex');
 
 // No directory discovery is used to decide what to publish.
 for (const [name, hash] of Object.entries(manifest)) {
-  if (!/^(index\.html|script\.js|style\.css|_headers|_routes\.json|assets\/[a-z0-9-]+\.png|shared\/(api|cart)\.js|swaggar\/(index\.html|style\.css|app\.js|ui\.js|catalog\.js|orders\.js|settings\.js))$/.test(name)
+  if (!/^(index\.html|script\.js|style\.css|_headers|_routes\.json|assets\/[a-z0-9-]+\.png|shared\/(api|cart|dialogs)\.js|swaggar\/(index\.html|style\.css|app\.js|ui\.js|catalog\.js|orders\.js|settings\.js))$/.test(name)
       || !/^[a-f0-9]{64}$/.test(hash)) throw new Error(`Invalid public manifest entry: ${name}`);
 }
 if (!['index.html', 'script.js', 'style.css'].every(name => name in manifest)) {

@@ -1,3 +1,5 @@
+import {dialogController} from '../shared/dialogs.js';
+import {label} from './ui.js';
 import {request} from '../shared/api.js';
 import {productsView,categoriesView} from './catalog.js';
 import {ordersView,overviewView} from './orders.js';
@@ -9,13 +11,13 @@ const ctx={user:null,csrf:null,poll:null,notice:message=>document.getElementById
 function signedOut(message=''){
   generation++;ctx.user=null;ctx.csrf=null;ctx.poll=null;
   document.getElementById('workspace').hidden=true;document.getElementById('login-view').hidden=false;
-  document.getElementById('editor').close();document.getElementById('editor-content').replaceChildren();document.getElementById('content').replaceChildren();
+  dialogController(document.querySelector('.admin-kiosk')).close(document.getElementById('editor'));document.getElementById('editor-content').replaceChildren();document.getElementById('content').replaceChildren();
   document.getElementById('login-error').textContent=message;
 }
 function signedIn(session){
   ctx.user=session.user;ctx.csrf=session.csrf;
   document.getElementById('login-view').hidden=true;document.getElementById('workspace').hidden=false;
-  document.getElementById('identity').textContent=`${ctx.user.display_name} · ${ctx.user.role}`;
+  document.getElementById('identity').textContent=`${ctx.user.display_name} · ${label(ctx.user.role)}`;
   document.querySelectorAll('[data-roles]').forEach(node=>node.hidden=!node.dataset.roles.split(' ').includes(ctx.user.role));
   page='overview';render();
 }
