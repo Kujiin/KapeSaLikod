@@ -8,7 +8,7 @@
   <title>Kape sa Likod — Order here</title>
   <link rel="icon" href="assets/kapelogo.png" type="image/png">
   <link rel="stylesheet" href="style.css">
-  <script src="script.js" defer></script>
+  <script src="script.js" type="module"></script>
 </head>
 <body>
   <div class="kiosk">
@@ -62,9 +62,14 @@
         <div class="menu-heading"><h1 id="menu-title" tabindex="-1">Menu</h1></div>
         <nav class="categories" aria-label="Menu categories"><span class="category-indicator" aria-hidden="true"></span><button class="category active" data-category="All" aria-pressed="true">All drinks</button><button class="category" data-category="Non Coffee" aria-pressed="false">Non Coffee</button><button class="category" data-category="Matcha" aria-pressed="false">Matcha</button><button class="category" data-category="Sparkling Soda" aria-pressed="false">Sparkling Soda</button></nav>
         <div class="menu-meta"><h2 id="category-title">All drinks <span>21</span></h2></div>
+        <div id="menu-state" role="status" aria-live="polite"></div>
         <div id="products" class="products"></div>
+        <button id="open-cart" class="button primary cart-bar" hidden>Review order</button>
       </section>
     </main>
+    <dialog id="size-dialog" aria-labelledby="size-title"><form method="dialog"><button class="dialog-close" aria-label="Close size selection">×</button></form><h2 id="size-title">Choose your size</h2><div id="size-options"></div></dialog>
+    <dialog id="cart-dialog" aria-labelledby="cart-title"><form method="dialog"><button class="dialog-close" aria-label="Close order summary">×</button></form><h2 id="cart-title">Your order</h2><p id="cart-type"></p><div id="cart-items"></div><p id="cart-total"></p><p id="counter-note">Unpaid · Pay at the counter</p><p id="cart-message" role="status" aria-live="polite"></p><button id="submit-order" class="button primary">Place unpaid order</button></dialog>
+    <dialog id="confirmation" aria-labelledby="confirmation-title"><h2 id="confirmation-title">Order received</h2><p id="order-reference"></p><p id="order-confirmed-total"></p><p>Unpaid · Please pay at the counter.</p><button id="new-order" class="button primary">Start a new order</button></dialog>
     <footer class="footer"><span>Self-Service Ordering</span></footer>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>

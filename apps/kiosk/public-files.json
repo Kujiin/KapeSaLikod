@@ -1,4 +1,6 @@
 {
+  "_headers": "579e9b685f79f163b5fc1814da93036c9278bc769d778c94c94c76bb7a9dcffb",
+  "_routes.json": "360e860744356015a17e9e78ab59916576d7d31cea7a05e72d66a850bf17b56a",
   "assets/coffee-01.png": "867552785afa18e8c438bf91c8f06f836a85fba5cf56df5e0b7d5ed6390c235e",
   "assets/coffee-02.png": "d4f6e1d4187f434e9deac6d29261efaf8ffb7100f0c808bf76d44cce04208fc2",
   "assets/coffee-03.png": "8b3d0c7ff8310186db9c33372e5468b035437cff29245a97fbc7a9337ce7bbe3",
@@ -9,7 +11,16 @@
   "assets/coffee-08.png": "fb11dc607c9e93a7b6594b351ed1db0b221560025883504a1423b1e68143bd08",
   "assets/coffeeselection.png": "411a03c95fe1ca4d99c74e90eb82873c88b84535b86714ed86786c2512c77e75",
   "assets/kapelogo.png": "7d77a8a092ba284c2ce83dad03af7277033f0226b95967f9f428ae0a254de841",
-  "index.html": "0000cb292d3ed304942bd34a1be96c2c4e4ab7db6071ced5b05f7ccc0d6cdd8e",
-  "script.js": "5e16a83f80bf3b535fb40bbf47580924fe4ee0a5d49f25fc0f6d9a86c1d681f2",
-  "style.css": "31c8c30c56c31ad514fa7092877a2f563f4ec3b00e5b629d3d87d5438dd06df3"
+  "index.html": "9b0c0ac290dbbf86fa068df9cbc6094553a318228d9690341456030c9f71c16d",
+  "script.js": "3e8b095dd1f2aa698b6edfda98c68ce6eaceb3ecc317241eb5facc8381016909",
+  "shared/api.js": "506a3466141b090ee0b16a1e9c1015095470643c1be09b1fcb09f5f14b47ecb3",
+  "shared/cart.js": "0a69ed7628a0a556a51e7a5babfa03dd90cf7c2b6313c7b0132f75ecbe496c71",
+  "style.css": "d46817f6b808d5136359a61743ea27c267b53900fa37296b293c877b39ca2eea",
+  "swaggar/app.js": "c3a8510619ea689dd869409fb0c36b4e583e0e095ebd35cfc43416f4972cd699",
+  "swaggar/catalog.js": "faf2ea7e31b96cdc447d36829d90d36607f0c835de405eb4234674e1bdfa323f",
+  "swaggar/index.html": "f745afb5a2f397edc5facebc4699e26be6c409c834995aff016196287ba9b9cf",
+  "swaggar/orders.js": "35da317afc3e583af24f28d700c742fef1b110070b72db0c2ca9de82b327d8eb",
+  "swaggar/settings.js": "82b0a7d766b28e474feb92eb804de7207e5f7823b0280eb332e10a3db6ebbcf3",
+  "swaggar/style.css": "cc00d9c3e8ade7eff4f6db681cef5ac4998744e72c2d0e7b0bdc29a14a5db18b",
+  "swaggar/ui.js": "f40a5dc8c6a7875a4b4daa9cdc8317dc2fcc74c99874ec3afc1104c70eed952d"
 }

@@ -10,13 +10,13 @@ const names = await verifyTree(source);
 // Refuse to delete an unexpected directory or follow a pre-existing symlink.
 try {
   await lstat(output);
-  await verifyTree(output);
+  await verifyTree(output, false);
 } catch (error) {
   if (error.code !== 'ENOENT') throw error;
 }
 const stage = await mkdtemp(join(root, '.build-'));
 try {
-  await mkdir(join(stage, 'assets'));
+  for (const directory of ['assets','shared','swaggar']) await mkdir(join(stage, directory));
   for (const name of names) await copyFile(join(source, name), join(stage, name));
   await verifyTree(stage);
   await rm(output, { recursive: true, force: true });

@@ -6,7 +6,8 @@ import { kiosk, manifest, digest, verifyTree } from './files.mjs';
 await verifyTree(fileURLToPath(new URL('public/', kiosk)));
 await verifyTree(fileURLToPath(new URL('dist/', kiosk)));
 // During preparation, legacy root files remain an independent preservation check.
-for (const [name, hash] of Object.entries(manifest)) {
+const baseline = JSON.parse(await readFile(new URL('legacy-files.json', kiosk), 'utf8'));
+for (const [name, hash] of Object.entries(baseline)) {
   assert.equal(digest(await readFile(new URL(`../../${name}`, kiosk))), hash, `Legacy kiosk differs: ${name}`);
 }
-console.log(`PASS: all ${Object.keys(manifest).length} legacy, source, and output files are byte-identical.`);
+console.log(`PASS: all ${Object.keys(manifest).length} approved public files verified; legacy kiosk remains unchanged.`);
